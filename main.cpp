@@ -34,7 +34,7 @@ Matrix4x4 MakeScaleMatrix(const Vector3& scale)
 	};
 	return result;
 }
-//回転行列3x3
+//回転行列4x4
 Matrix4x4 MakeRotateZMatrix(float radian) {
 
 	Matrix4x4 result;
@@ -117,19 +117,22 @@ Matrix4x4 MakeRotateYMatrix(float radian) {
 }
 
 
-Matrix4x4 Multiply(Matrix4x4& matrix1, Matrix4x4& matrix2) {
-
-	Matrix4x4 result;
-
-	for (int row = 0; row < 4; row++)
-	{
-		for (int column = 0; column < 4; column++)
-		{
-			result.m[row][column] = matrix1.m[row][0] * matrix2.m[0][column] + matrix1.m[row][1] * matrix2.m[1][column] + matrix1.m[row][2] * matrix2.m[2][column];
+//行列の積
+Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
+	Matrix4x4 result{};
+	float buf;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			buf = 0;
+			for (int k = 0; k < 4; k++) {
+				buf = buf + m1.m[i][k] * m2.m[k][j];
+				result.m[i][j] = buf;
+			}
 		}
 	}
+
 	return result;
-};
+}
 
 
 //座標変換
@@ -177,19 +180,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Vector3 rotate(4.1f, 2.6f, 0.8f);
-	Vector3 scale{ 1.5f,5.2f,7.3f };
-	Matrix4x4 translateMatrix = MakeTranslateMatrix(translate);
-	Matrix4x4 scaleMatrix = MakeScaleMatrix(scale);
-	Vector3 point{ 2.3f,3.8f,1.4f };
-	Matrix4x4 transformMatrix = {
-		1.0f,2.0f,3.0f,4.0f,
-		3.0f,1.0f,1.0f,2.0f,
-		1.0f,4.0f,2.0f,3.0f,
-		2.0f,2.0f,1.0f,3.0f,
-	};
-	Vector3 transformed = Transform(point, transformMatrix);
-
+	Vector3 rotate(0.4f, 1.43f, -0.8f);
+	
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 rotateXYZMatrix = Multiply(rotateXMatrix, Multiply(rotateYMatrix, rotateZMatrix));
 
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
@@ -216,9 +212,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 
-		VectorScreenPrintf(0, 0, transformed, "transformed");
-		MatrixScreenPrintf(0, kRowHeight + 20, translateMatrix);
-		MatrixScreenPrintf(0, kRowHeight * 5 + 40, scaleMatrix);
+		MatrixScreenPrintf(0, 0, rotateXMatrix);
+		MatrixScreenPrintf(0, kRowHeight * 5, rotateYMatrix);
+		MatrixScreenPrintf(0, kRowHeight * 5 * 2, rotateZMatrix);
+		MatrixScreenPrintf(0, kRowHeight * 5 * 3, rotateXYZMatrix);
 
 
 		///
