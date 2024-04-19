@@ -182,7 +182,7 @@ Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Ve
 
 //////////////////////////////////////////////////////////////////////
 
-//正射影行列
+//正射影行列4x4
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom,float nearClip,float farClip) {
 	Matrix4x4 result;
 
@@ -236,7 +236,7 @@ Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip
 	return result;
 }
 
-//ビューポート行列
+//ビューポート行列4x4
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height,float minDepth, float maxDepth) {
 	Matrix4x4 result;
 
