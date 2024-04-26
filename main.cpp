@@ -263,7 +263,6 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height,fl
 	return result;
 };
 
-
 ///////////////////////////////////////////////////////////////////////
 
 //座標変換
@@ -310,6 +309,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
+
+	Vector3 rotate{};
+	Vector3 translate{};
+	//各種行列の計算
+	Matrix4x4 worldMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, rotate, translate);
+	Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, {0.0f,0.0f,0.0f}, cameraPosition);
+	Matrix4x4 viewMatrix = Inverce(cameraMatrix);
+	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
 
 	Matrix4x4 orthgraphicMatrix 
 		= MakeOrthographicMatrix(-160.0f, 160.0f, 200.0f, 300.0f, 0.0f, 1000.0f);
