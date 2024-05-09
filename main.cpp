@@ -532,7 +532,7 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 
 		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
 			float lon = lonIndex * kLonEvery;
-
+			//ワールド座標系での頂点を求める
 			a = {
 				(sphere.center.x + sphere.radius) * (std::cos(lat) * std::cos(lon)),
 				(sphere.center.y + sphere.radius) * (std::sin(lat)),
