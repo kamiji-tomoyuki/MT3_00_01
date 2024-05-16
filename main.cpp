@@ -12,9 +12,9 @@ struct Matrix4x4
 	float m[4][4];
 };
 
-struct Sphere {
-	Vector3 center;//中心
-	float radius;//半径
+struct Sphere{
+	Vector3 center;//中心点
+	float radius;  //半径
 };
 
 struct Line {
@@ -508,7 +508,17 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	Vector3 cp = Add(segment.origin, proj);
 	
 	return cp;
+}
+bool isColision(const Sphere& s1, const Sphere& s2){
+	float add = s1.radius + s2.radius;
+	Vector3 distanceVector = { s1.center.x - s2.center.x ,s1.center.y - s2.center.y,s1.center.z - s2.center.z };
+	float distance = sqrtf(powf(distanceVector.x, 2) + powf(distanceVector.y, 2) + powf(distanceVector.z, 2));
 
+	if (distance <= add){
+		return true;
+	}else{
+		return false;
+	}
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -517,12 +527,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Segment segment{ {-2.0f,-1.0f,0.0f},{3.0f,2.0f,2.0f} };
-	Vector3 point{ -1.5f,0.6f,0.6f };
+	//球2つ
+	Sphere sphere[2]{
+		{ Vector3{},0.5f} ,
+		{{2.0f,0.0f,2.0f},0.5f}
+	};
+	//色
+	uint32_t color[2] = {
+		WHITE,WHITE
+	};
 
+	//カメラ
 	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
 	Vector3 cameraRotate{ 0.26f,0.0f,0.0f };
-
+	float cameraSpeed = 0.1f;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
@@ -541,12 +559,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		Vector3 project = Project(Subtract(point, segment.origin), segment.diff);
-		Vector3 closestPoint = ClosestPoint(point, segment);
+		if (isColision(sphere[0], sphere[1])){
+			color[0] = RED;
+		}else{
+			color[0] = WHITE;
+		}
 
-		Sphere pointSphere{ point,0.01f };
-		Sphere closestPointSphere{ closestPoint,0.01f };
 
+		if (keys[DIK_W]){cameraTranslate.z += cameraSpeed;}
+		if (keys[DIK_S]){cameraTranslate.z -= cameraSpeed;}
+
+		if (keys[DIK_A]){cameraTranslate.x -= cameraSpeed;}
+		if (keys[DIK_D]){cameraTranslate.x += cameraSpeed;}
+
+		if (keys[DIK_UP]){cameraTranslate.y += cameraSpeed;}
+		if (keys[DIK_DOWN]){cameraTranslate.y -= cameraSpeed;}
 
 		Matrix4x4 camelaMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, cameraRotate, cameraTranslate);
 		Matrix4x4 viewMatriix = Inverse(camelaMatrix);
@@ -554,19 +581,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 viewProjectionMatrix = Multiply(viewMatriix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, (float)kWindowWidth, (float)kWindowHeight, 0.0f, 1.0f);
 
-		Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-		Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
-
-
 
 		//ImGui
 		ImGui::Begin("window");
-		ImGui::DragFloat3("Point", &point.x, 0.01f);
-		ImGui::DragFloat3("Segment origin", &segment.origin.x, 0.01f);
-		ImGui::DragFloat3("Segment diff", &segment.diff.x, 0.01f);
-		ImGui::InputFloat3("Project", &project.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
+		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		ImGui::DragFloat3("Sphere[0]:Center", &sphere[0].center.x, 0.01f);
+		ImGui::DragFloat("Sphere[0]:Radius", &sphere[0].radius, 0.01f);
+		ImGui::DragFloat3("Sphere[1]:Center", &sphere[1].center.x, 0.01f);
+		ImGui::DragFloat("Sphere[1]:Radius", &sphere[1].radius, 0.01f);
 		ImGui::End();
-
 
 		///
 		/// ↑更新処理ここまで
@@ -577,9 +601,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		DrawSphere(pointSphere, viewProjectionMatrix, viewportMatrix, RED);
-		DrawSphere(closestPointSphere, viewProjectionMatrix, viewportMatrix, BLACK);
-		Novice::DrawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y, WHITE);
+		DrawSphere(sphere[0], viewProjectionMatrix, viewportMatrix, color[0]);
+		DrawSphere(sphere[1], viewProjectionMatrix, viewportMatrix, color[1]);
 
 		///
 		/// ↑描画処理ここまで
