@@ -526,6 +526,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
 	Vector3 cameraRotate{ 0.26f,0.0f,0.0f };
 
+	//1cmの球
+	Sphere pointSphere{ point,0.01f };
+	Sphere closestPointSphere{ closestPoint,0.01f };
 	
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
@@ -562,7 +565,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 
-
+		//ImGui
 		ImGui::Begin("window");
 		ImGui::DragFloat3("Point", &point.x, 0.01f);
 		ImGui::DragFloat3("Segment origin", &segment.origin.x, 0.01f);
@@ -617,21 +620,21 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 			float lon = lonIndex * kLonEvery;
 			//ワールド座標系での頂点を求める
 			a = {
-				(sphere.center.x + sphere.radius) * (std::cos(lat) * std::cos(lon)),
-				(sphere.center.y + sphere.radius) * (std::sin(lat)),
-				(sphere.center.z + sphere.radius) * (std::cos(lat) * std::sin(lon))
+				sphere.radius * std::cos(lat) * std::cos(lon),
+				sphere.radius * std::sin(lat),
+				sphere.radius * std::cos(lat) * std::sin(lon)
 			};										
 													
 			b = {									
-				(sphere.center.x + sphere.radius) * (std::cos(lat + (pi / kSubdivision)) * std::cos(lon)),
-				(sphere.center.y + sphere.radius) * (std::sin(lat + (pi / kSubdivision))),
-				(sphere.center.z + sphere.radius) * (std::cos(lat + (pi / kSubdivision)) * std::sin(lon))
+				sphere.radius * std::cos(lat + (pi / kSubdivision)) * std::cos(lon),
+				sphere.radius * std::sin(lat + (pi / kSubdivision)),
+				sphere.radius * std::cos(lat + (pi / kSubdivision)) * std::sin(lon)
 			};										
 													
 			c = {									
-				(sphere.center.x + sphere.radius) * (std::cos(lat) * std::cos(lon + ((pi * 2) / kSubdivision))),
-				(sphere.center.y + sphere.radius) * (std::sin(lat)),
-				(sphere.center.z + sphere.radius) * (std::cos(lat) * std::sin(lon + ((pi * 2) / kSubdivision)))
+				sphere.radius * std::cos(lat) * std::cos(lon + ((pi * 2) / kSubdivision)),
+				sphere.radius * std::sin(lat),
+				sphere.radius * std::cos(lat) * std::sin(lon + ((pi * 2) / kSubdivision))
 			};
 
 			//a,b,cをScreen座標系まで変換
