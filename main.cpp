@@ -526,10 +526,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
 	Vector3 cameraRotate{ 0.26f,0.0f,0.0f };
 
-	//1cmの球
-	Sphere pointSphere{ point,0.01f };
-	Sphere closestPointSphere{ closestPoint,0.01f };
-	
+	////1cmの球
+	//Sphere pointSphere{ point,0.01f };
+	//Sphere closestPointSphere{ closestPoint,0.01f };
+	//
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
