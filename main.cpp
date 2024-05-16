@@ -113,7 +113,6 @@ Matrix4x4 MakeRotateZMatrix(float radian) {
 
 	return result;
 }
-
 Matrix4x4 MakeRotateXMatrix(float radian) {
 
 	Matrix4x4 result;
@@ -140,7 +139,6 @@ Matrix4x4 MakeRotateXMatrix(float radian) {
 
 	return result;
 }
-
 Matrix4x4 MakeRotateYMatrix(float radian) {
 
 	Matrix4x4 result;
@@ -165,6 +163,13 @@ Matrix4x4 MakeRotateYMatrix(float radian) {
 	result.m[3][2] = 0;
 	result.m[3][3] = 1;
 
+	return result;
+}
+// 内積
+float Dot(const Vector3& v1, const Vector3& v2)
+{
+	float result;
+	result = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 	return result;
 }
 
@@ -467,38 +472,6 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 
 ///////////////////////////////////////////////////////////////////////
 
-Vector3 Project(const Vector3& v1, const Vector3& v2) {
-	// 単位ベクトルを計算
-	float lengthSquared = v2.x * v2.x + v2.y * v2.y + v2.z * v2.z;
-	float invLength = 1.0f / sqrt(lengthSquared);
-	Vector3 unit(v2.x * invLength, v2.y * invLength, v2.z * invLength);
-
-	// v1とUnitの内積を計算、Unitのスカラー倍を求める
-	float projectionScalar = (v1.x * unit.x + v1.y * unit.y + v1.z * unit.z);
-	Vector3 projection;
-	projection.x = projectionScalar * unit.x;
-	projection.y = projectionScalar * unit.y;
-	projection.z = projectionScalar * unit.z;
-
-	return projection;
-}
-Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
-	// segment.diff ~ segment.origin ベクトル
-	Vector3 ab(segment.diff.x - segment.origin.x, segment.diff.y - segment.origin.y, segment.diff.z - segment.origin.z);
-
-	// point ~ segment.origin ベクトル
-	Vector3 ap(point.x - segment.origin.x, point.y - segment.origin.y, point.z - segment.origin.z);
-
-	// segmentEnd ~ segment.origin
-	float abSquared = ab.x * ab.x + ab.y * ab.y + ab.z * ab.z;
-
-	// point が segment.origin から segment.diff への射影の内側にあるかどうかをチェック
-	float t = (ap.x * ab.x + ap.y * ab.y + ap.z * ab.z) / abSquared;
-	t = (float)std::fmax(0, std::fmin(1, t)); // [0, 1]の範囲内に制限
-	Vector3 result(segment.origin.x + ab.x * t, segment.origin.y + ab.y * t, segment.origin.z + ab.z * t);
-
-	return result;
-}
 
 Vector3 Subtract(const Vector3& v1, const Vector3& v2) {
 	Vector3 result;
@@ -509,6 +482,29 @@ Vector3 Add(const Vector3& v1, const Vector3& v2) {
 	Vector3 result;
 	result.x = v1.x + v2.x; result.y = v1.y + v2.y; result.z = v1.z + v2.z;
 	return result;
+}
+Vector3 Multiply(float scalar, const Vector3& v){
+	Vector3 result;
+	result.x = scalar * v.x;
+	result.y = scalar * v.y;
+	result.z = scalar * v.z;
+	return result;
+}
+
+Vector3 Project(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	float t = Dot(v1, v2) / (sqrtf(Dot(v2, v2)) * sqrtf(Dot(v2, v2)));
+
+	result = Multiply(t, v2);
+
+	return result;
+}
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	Vector3 proja = Project(point, segment.diff);//正射影ベクトル
+	Vector3 cp = Add(segment.origin, proja);//最近接点
+	// d = sqrtf((point.x - cp.x) + (point.y - cp.y) + (point.z - cp.z));
+
+	return cp;
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
