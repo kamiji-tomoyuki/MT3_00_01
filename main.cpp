@@ -559,6 +559,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	Plane plane{ {0.0f,1.0f,0.0f},1.0f };
 	Sphere sphere{ Vector3{},0.5f };
+	uint32_t color = WHITE;
 
 	//カメラ
 	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
@@ -585,11 +586,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		plane.normal = Normalize(plane.normal);
 		if (isColision(sphere, plane))
 		{
-			sphere.color = RED;
+			color = RED;
 		}
 		else
 		{
-			sphere.color = WHITE;
+			color = WHITE;
 		}
 
 		if (keys[DIK_W]){cameraTranslate.z += cameraSpeed;}
@@ -626,7 +627,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, sphere.color);
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, color);
 		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		///
