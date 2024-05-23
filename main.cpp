@@ -30,6 +30,12 @@ struct Segment {
 	Vector3 diff;//終点への差分ベクトル
 };
 
+struct Plane
+{
+	Vector3 normal; // !< 法線
+	float distance; // !< 距離
+};
+
 ///////////////////////////////////////////////////////////////////////
 
 //平行移動行列
@@ -470,6 +476,30 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label)
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
+//平面の描画
+Vector3 Perpendicular(const Vector3& vector)
+{
+	if (vector.x != 0.0f || vector.y != 0.0f)
+	{
+		return { -vector.y,vector.x,0.0f };
+	}
+	return { 0.0f,-vector.z,vector.y };
+}
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+bool isColision(const Sphere& sphere, const Plane& plane)
+{
+	float k = sqrtf(powf(Dot(plane.normal, sphere.center) - plane.distance, 2));
+
+	if (k <= sphere.radius)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////
 
 
@@ -527,15 +557,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	//球2つ
-	Sphere sphere[2]{
-		{ Vector3{},0.5f} ,
-		{{2.0f,0.0f,2.0f},0.5f}
-	};
-	//色
-	uint32_t color[2] = {
-		WHITE,WHITE
-	};
+	Plane plane{ {0.0f,1.0f,0.0f},1.0f };
+	Sphere sphere{ Vector3{},0.5f };
 
 	//カメラ
 	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
@@ -559,12 +582,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		if (isColision(sphere[0], sphere[1])){
-			color[0] = RED;
-		}else{
-			color[0] = WHITE;
+		plane.normal = Normalize(plane.normal);
+		if (isColision(sphere, plane))
+		{
+			sphere.color = RED;
 		}
-
+		else
+		{
+			sphere.color = WHITE;
+		}
 
 		if (keys[DIK_W]){cameraTranslate.z += cameraSpeed;}
 		if (keys[DIK_S]){cameraTranslate.z -= cameraSpeed;}
@@ -584,12 +610,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		//ImGui
 		ImGui::Begin("window");
-		ImGui::DragFloat3("CameraTranslate", &cameraTranslate.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		ImGui::DragFloat3("Sphere[0]:Center", &sphere[0].center.x, 0.01f);
-		ImGui::DragFloat("Sphere[0]:Radius", &sphere[0].radius, 0.01f);
-		ImGui::DragFloat3("Sphere[1]:Center", &sphere[1].center.x, 0.01f);
-		ImGui::DragFloat("Sphere[1]:Radius", &sphere[1].radius, 0.01f);
+		ImGui::DragFloat3("Sphere.Center", &sphere.center.x, 0.01f);
+		ImGui::DragFloat("Sphere.Radius", &sphere.radius, 0.01f);
+		ImGui::DragFloat3("Plane.Normal", &plane.normal.x, 0.01f);
+		ImGui::DragFloat("Plane.Distance", &plane.distance, 0.01f);
 		ImGui::End();
 
 		///
@@ -601,8 +626,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		DrawSphere(sphere[0], viewProjectionMatrix, viewportMatrix, color[0]);
-		DrawSphere(sphere[1], viewProjectionMatrix, viewportMatrix, color[1]);
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, sphere.color);
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		///
 		/// ↑描画処理ここまで
@@ -749,3 +774,27 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 	}
 
 }
+
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+	Vector3 center = Multiply(plane.distance, plane.normal); // 1
+	Vector3 perpendiculars[4];
+	perpendiculars[0] = Normalize(Perpendicular(plane.normal)); // 2
+	perpendiculars[1] = { -perpendiculars[0].x,-perpendiculars[0].y,-perpendiculars[0].z }; // 3
+	perpendiculars[2] = Cross(plane.normal, perpendiculars[0]); // 4
+	perpendiculars[3] = { -perpendiculars[2].x,-perpendiculars[2].y,-perpendiculars[2].z }; // 5
+
+	Vector3 points[4];
+	for (int32_t index = 0; index < 4; ++index)
+	{
+		Vector3 extend = Multiply(2.0f, perpendiculars[index]);
+		Vector3 point = Add(center, extend);
+		points[index] = Transform(Transform(point, viewProjectionMatrix), viewportMatrix);
+	}
+	//points をそれぞれ結んでDraw で矩形を描画
+	Novice::DrawLine((int)points[0].x, (int)points[0].y, (int)points[2].x, (int)points[2].y, color);
+	Novice::DrawLine((int)points[0].x, (int)points[0].y, (int)points[3].x, (int)points[3].y, color);
+	Novice::DrawLine((int)points[1].x, (int)points[1].y, (int)points[2].x, (int)points[2].y, color);
+	Novice::DrawLine((int)points[1].x, (int)points[1].y, (int)points[3].x, (int)points[3].y, color);
+}
+
