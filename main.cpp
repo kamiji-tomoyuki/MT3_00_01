@@ -5,7 +5,7 @@
 #include "Vector3.h"
 #include "assert.h"
 
-const char kWindowTitle[] = "LE2B_07_カミジ_トモユキ";
+const char kWindowTitle[] = "LE2B_07_カミジ_トモユキ"; 
 
 struct Matrix4x4
 {
