@@ -887,23 +887,15 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 
 void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
 {
-	// 頂点それぞれのワールド行列を作成
-	Vector3 transformedVertices[3];
+	//スクリーン座標に変換
+	Vector3 transform[3];
+	Vector3 screen[3];
+
 	for (int i = 0; i < 3; ++i) {
-		Matrix4x4 WorldMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, triangle.vertices[i]);
-		Matrix4x4 wvpMatrix = Multiply(WorldMatrix, viewProjectionMatrix);
-		transformedVertices[i] = Transform(triangle.vertices[i], wvpMatrix);
+		transform[i] = Transform(triangle.vertices[i], viewProjectionMatrix);
+		screen[i] = Transform(transform[i], viewportMatrix);
 	}
 
-	// スクリーン座標に変換
-	Vector3 screenVertices[3];
-	for (int i = 0; i < 3; ++i) {
-		screenVertices[i] = Transform(transformedVertices[i], viewportMatrix);
-	}
-
-	// 三角形の描画
-	Novice::DrawTriangle((int)screenVertices[0].x, (int)screenVertices[0].y,
-		(int)screenVertices[1].x, (int)screenVertices[1].y,
-		(int)screenVertices[2].x, (int)screenVertices[2].y,
-		color, kFillModeWireFrame);
+	//三角形の描画
+	Novice::DrawTriangle((int)screen[0].x, (int)screen[0].y, (int)screen[1].x, (int)screen[1].y, (int)screen[2].x, (int)screen[2].y, color, kFillModeWireFrame);
 }
