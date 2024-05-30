@@ -5,14 +5,14 @@
 #include "Vector3.h"
 #include "assert.h"
 
-const char kWindowTitle[] = "LE2B_07_カミジ_トモユキ"; 
+const char kWindowTitle[] = "LE2B_07_カミジ_トモユキ";
 
 struct Matrix4x4
 {
 	float m[4][4];
 };
 
-struct Sphere{
+struct Sphere {
 	Vector3 center;//中心点
 	float radius;  //半径
 };
@@ -536,15 +536,35 @@ Vector3 Project(const Vector3& v1, const Vector3& v2) {
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	Vector3 proj = Project(Subtract(point, segment.origin), Subtract(Add(segment.origin, segment.diff), segment.origin));
 	Vector3 cp = Add(segment.origin, proj);
-	
+
 	return cp;
 }
-bool isColision(const Sphere& s1, const Sphere& s2){
+//球 & 球
+bool isColision(const Sphere& s1, const Sphere& s2) {
 	float add = s1.radius + s2.radius;
 	Vector3 distanceVector = { s1.center.x - s2.center.x ,s1.center.y - s2.center.y,s1.center.z - s2.center.z };
 	float distance = sqrtf(powf(distanceVector.x, 2) + powf(distanceVector.y, 2) + powf(distanceVector.z, 2));
 
-	if (distance <= add){
+	if (distance <= add) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+//線 & 面
+bool isColision(const Segment& segment, const Plane& plane) {
+	//法線と線の内積
+	float dot = Dot(plane.normal, segment.diff);
+
+	//垂直=平行なので衝突しない
+	if (dot == 0.0f) { return false; }
+
+	//tを求める
+	float t = (plane.distance - Dot(segment.origin, plane.normal)) / dot;
+
+	//衝突判定
+	if (t <= 1 && t >= 0){
 		return true;
 	}else{
 		return false;
@@ -558,7 +578,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
 	Plane plane{ {0.0f,1.0f,0.0f},1.0f };
-	Sphere sphere{ Vector3{},0.5f };
+	Segment segment{ { -0.45f,0.41f,0.0f},{1.0f,0.58f,0.0f} };
 	uint32_t color = WHITE;
 
 	//カメラ
@@ -584,7 +604,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		plane.normal = Normalize(plane.normal);
-		if (isColision(sphere, plane))
+		if (isColision(segment, plane))
 		{
 			color = RED;
 		}
@@ -593,14 +613,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			color = WHITE;
 		}
 
-		if (keys[DIK_W]){cameraTranslate.z += cameraSpeed;}
-		if (keys[DIK_S]){cameraTranslate.z -= cameraSpeed;}
+		if (keys[DIK_W]) { cameraTranslate.z += cameraSpeed; }
+		if (keys[DIK_S]) { cameraTranslate.z -= cameraSpeed; }
 
-		if (keys[DIK_A]){cameraTranslate.x -= cameraSpeed;}
-		if (keys[DIK_D]){cameraTranslate.x += cameraSpeed;}
+		if (keys[DIK_A]) { cameraTranslate.x -= cameraSpeed; }
+		if (keys[DIK_D]) { cameraTranslate.x += cameraSpeed; }
 
-		if (keys[DIK_UP]){cameraTranslate.y += cameraSpeed;}
-		if (keys[DIK_DOWN]){cameraTranslate.y -= cameraSpeed;}
+		if (keys[DIK_UP]) { cameraTranslate.y += cameraSpeed; }
+		if (keys[DIK_DOWN]) { cameraTranslate.y -= cameraSpeed; }
 
 		Matrix4x4 camelaMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, cameraRotate, cameraTranslate);
 		Matrix4x4 viewMatriix = Inverse(camelaMatrix);
@@ -608,14 +628,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 viewProjectionMatrix = Multiply(viewMatriix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, (float)kWindowWidth, (float)kWindowHeight, 0.0f, 1.0f);
 
+		//線の始点・終点
+		Vector3 startPos = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+		Vector3 endPos = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
 		//ImGui
 		ImGui::Begin("window");
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		ImGui::DragFloat3("Sphere.Center", &sphere.center.x, 0.01f);
-		ImGui::DragFloat("Sphere.Radius", &sphere.radius, 0.01f);
 		ImGui::DragFloat3("Plane.Normal", &plane.normal.x, 0.01f);
 		ImGui::DragFloat("Plane.Distance", &plane.distance, 0.01f);
+		ImGui::DragFloat3("Segment.Origin", &segment.origin.x, 0.01f);
+		ImGui::DragFloat3("Segment.Diff", &segment.diff.x, 0.01f);
 		ImGui::End();
 
 		///
@@ -627,7 +650,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, color);
+
+		Novice::DrawLine((int)startPos.x, (int)startPos.y, (int)endPos.x, (int)endPos.y, color);
 		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		///
@@ -718,8 +742,8 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 
 	for (uint32_t xIndex = 0; xIndex <= kSubdivision; ++xIndex) {
 
-		zLineStart = Vector3(xIndex * kGridEvery/2 - kGridHalfWidth+1, 0, 1);
-		zLineEnd = Vector3(xIndex * kGridEvery/2 - kGridHalfWidth+1, 0, -3);
+		zLineStart = Vector3(xIndex * kGridEvery / 2 - kGridHalfWidth + 1, 0, 1);
+		zLineEnd = Vector3(xIndex * kGridEvery / 2 - kGridHalfWidth + 1, 0, -3);
 
 		//スクリーン座標系まで変換をかける
 		Matrix4x4 startWorldMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, zLineStart);
@@ -747,8 +771,8 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 	}
 
 	for (uint32_t zIndex = 0; zIndex <= kSubdivision; ++zIndex) {
-		xLineStart = Vector3(1, 0, zIndex * kGridEvery/2 - kGridHalfWidth+1);
-		xLineEnd = Vector3(-1, 0, zIndex * kGridEvery/2 - kGridHalfWidth+1);
+		xLineStart = Vector3(1, 0, zIndex * kGridEvery / 2 - kGridHalfWidth + 1);
+		xLineEnd = Vector3(-1, 0, zIndex * kGridEvery / 2 - kGridHalfWidth + 1);
 
 		//スクリーン座標系まで変換をかける
 		Matrix4x4 startWorldMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, xLineStart);
