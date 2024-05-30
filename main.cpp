@@ -583,8 +583,8 @@ bool isColision(const Segment& segment, const Plane& plane) {
 		return false;
 	}
 }
-//線 & 三角形
-bool isColision(const Segment& segment, const Triangle& triangle){
+//線 & 三角形 当たり判定
+bool isColision(const Segment& segment, const Triangle& triangle) {
 	Vector3 v01 = Subtract(triangle.vertices[1], triangle.vertices[0]);
 	Vector3 v12 = Subtract(triangle.vertices[2], triangle.vertices[1]);
 	Vector3 v20 = Subtract(triangle.vertices[0], triangle.vertices[2]);
@@ -593,11 +593,20 @@ bool isColision(const Segment& segment, const Triangle& triangle){
 
 	float d = Dot(triangle.vertices[0], n);
 
-	//法線と線の内積
+	// 法線と線の内積
 	float dot = Dot(n, segment.diff);
+
+	// 線が平面と平行な場合は衝突しない
+	if (fabs(dot) < FLT_EPSILON) {
+		return false;
+	}
+
 	float t = (d - Dot(segment.origin, n)) / dot;
 
-	if (!(t <= 1 && t >= 0)) { return false; }
+	// tが線分の範囲内にない場合は衝突しない
+	if (t < 0.0f || t > 1.0f) {
+		return false;
+	}
 
 	Vector3 p = Add(segment.origin, Multiply(t, segment.diff));
 
@@ -605,15 +614,16 @@ bool isColision(const Segment& segment, const Triangle& triangle){
 	Vector3 v1p = Subtract(p, triangle.vertices[1]);
 	Vector3 v2p = Subtract(p, triangle.vertices[2]);
 
-	//各辺を結んだベクトル、頂点、衝突点pを結んだベクトルのクロス積を取る
+	// 各辺を結んだベクトル、頂点、衝突点pを結んだベクトルのクロス積を取る
 	Vector3 cross01 = Cross(v01, v1p);
 	Vector3 cross12 = Cross(v12, v2p);
 	Vector3 cross20 = Cross(v20, v0p);
 
-	//衝突判定
-	if (Dot(cross01, n) >= 0.0f && Dot(cross12, n) >= 0.0f && Dot(cross20, n) >= 0.0f){
+	// 衝突判定
+	if (Dot(cross01, n) >= 0.0f && Dot(cross12, n) >= 0.0f && Dot(cross20, n) >= 0.0f) {
 		return true;
-	}else{
+	}
+	else {
 		return false;
 	}
 }
@@ -630,7 +640,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	triangle.vertices[1] = { 0.0f,0.5f,0.0f };
 	triangle.vertices[2] = { 0.5f,0.0f,0.0f };
 
-	Segment segment{ { -0.45f,0.41f,0.0f},{1.0f,0.58f,0.0f} };
+	Segment segment{ { 0.0f,0.0f,1.0f},{0.0f,0.0f,-2.0f} };
 	uint32_t color = WHITE;
 
 	//カメラ
@@ -875,25 +885,25 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjectionMatrix, const 
 	Novice::DrawLine((int)points[1].x, (int)points[1].y, (int)points[3].x, (int)points[3].y, color);
 }
 
-void DrawTriangle(const Triangle & triangle, const Matrix4x4 & viewProjectionMatrix, const Matrix4x4 & viewportMatrix, uint32_t color)
+void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
 {
-		// 頂点それぞれのワールド行列を作成
-		Vector3 transformedVertices[3];
-		for (int i = 0; i < 3; ++i) {
-			Matrix4x4 WorldMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, triangle.vertices[i]);
-			Matrix4x4 wvpMatrix = Multiply(WorldMatrix, viewProjectionMatrix);
-			transformedVertices[i] = Transform(triangle.vertices[i], wvpMatrix);
-		}
+	// 頂点それぞれのワールド行列を作成
+	Vector3 transformedVertices[3];
+	for (int i = 0; i < 3; ++i) {
+		Matrix4x4 WorldMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, triangle.vertices[i]);
+		Matrix4x4 wvpMatrix = Multiply(WorldMatrix, viewProjectionMatrix);
+		transformedVertices[i] = Transform(triangle.vertices[i], wvpMatrix);
+	}
 
-		// スクリーン座標に変換
-		Vector3 screenVertices[3];
-		for (int i = 0; i < 3; ++i) {
-			screenVertices[i] = Transform(transformedVertices[i], viewportMatrix);
-		}
+	// スクリーン座標に変換
+	Vector3 screenVertices[3];
+	for (int i = 0; i < 3; ++i) {
+		screenVertices[i] = Transform(transformedVertices[i], viewportMatrix);
+	}
 
-		// 三角形の描画
-		Novice::DrawTriangle((int)screenVertices[0].x, (int)screenVertices[0].y,
-			(int)screenVertices[1].x, (int)screenVertices[1].y,
-			(int)screenVertices[2].x, (int)screenVertices[2].y,
-			color, kFillModeWireFrame);
+	// 三角形の描画
+	Novice::DrawTriangle((int)screenVertices[0].x, (int)screenVertices[0].y,
+		(int)screenVertices[1].x, (int)screenVertices[1].y,
+		(int)screenVertices[2].x, (int)screenVertices[2].y,
+		color, kFillModeWireFrame);
 }
