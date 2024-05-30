@@ -324,6 +324,7 @@ Matrix4x4 MakeIdentity() {
 	return result;
 }
 
+//Affine
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate) {
 	Matrix4x4 S = MakeScaleMatrix(scale);
 	Matrix4x4 Rx = MakeRotateXMatrix(rotate.x);
@@ -365,7 +366,6 @@ Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float botto
 
 	return result;
 };
-
 //透視投影行列
 Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
 	Matrix4x4 result;
@@ -392,7 +392,6 @@ Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip
 
 	return result;
 }
-
 //ビューポート行列4x4
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth) {
 	Matrix4x4 result;
@@ -419,7 +418,6 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 
 	return result;
 };
-
 //クロス積
 Vector3 Cross(const Vector3& v1, const Vector3& v2) {
 	Vector3 result;
@@ -477,9 +475,11 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label)
 
 ///////////////////////////////////////////////////////////////////////
 
-//グリッドと球の描画
-void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+//グリッドの描画
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
+
+//球の描画
+void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 //平面の描画
 Vector3 Perpendicular(const Vector3& vector)
@@ -510,7 +510,7 @@ void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatri
 
 ///////////////////////////////////////////////////////////////////////
 
-
+//Vector3
 Vector3 Subtract(const Vector3& v1, const Vector3& v2) {
 	Vector3 result;
 	result.x = v1.x - v2.x; result.y = v1.y - v2.y; result.z = v1.z - v2.z;
@@ -547,6 +547,8 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 
 	return cp;
 }
+
+///////////////////////////////////////////////////////////////////////
 
 //当たり判定
 //球 & 球
