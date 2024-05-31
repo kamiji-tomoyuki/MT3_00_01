@@ -41,6 +41,11 @@ struct Triangle {
 	Vector3 vertices[3]; //頂点
 };
 
+struct AABB {
+	Vector3 min;//最小点
+	Vector3 max;//最大店
+};
+
 ///////////////////////////////////////////////////////////////////////
 
 //平行移動行列
@@ -447,6 +452,46 @@ Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix)
 
 ///////////////////////////////////////////////////////////////////////
 
+//Vector3
+Vector3 Subtract(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	result.x = v1.x - v2.x; result.y = v1.y - v2.y; result.z = v1.z - v2.z;
+	return result;
+}
+Vector3 Add(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	result.x = v1.x + v2.x; result.y = v1.y + v2.y; result.z = v1.z + v2.z;
+	return result;
+}
+Vector3 Multiply(float scalar, const Vector3& v) {
+	Vector3 result;
+	result.x = scalar * v.x;
+	result.y = scalar * v.y;
+	result.z = scalar * v.z;
+	return result;
+}
+Vector3 Normalize(const Vector3& v) {
+	float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	return { v.x / length, v.y / length, v.z / length };
+}
+
+Vector3 Project(const Vector3& v1, const Vector3& v2) {
+	Vector3 result;
+	float t = Dot(v1, v2) / (sqrtf(powf(Dot(v2, v2), 2)));
+
+	result = Multiply(t, v2);
+
+	return result;
+}
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	Vector3 proj = Project(Subtract(point, segment.origin), Subtract(Add(segment.origin, segment.diff), segment.origin));
+	Vector3 cp = Add(segment.origin, proj);
+
+	return cp;
+}
+
+///////////////////////////////////////////////////////////////////////
+
 //描画用関数
 
 static const int kRowHeight = 20;
@@ -508,45 +553,8 @@ bool isColision(const Sphere& sphere, const Plane& plane)
 //三角形の描画
 void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
-///////////////////////////////////////////////////////////////////////
-
-//Vector3
-Vector3 Subtract(const Vector3& v1, const Vector3& v2) {
-	Vector3 result;
-	result.x = v1.x - v2.x; result.y = v1.y - v2.y; result.z = v1.z - v2.z;
-	return result;
-}
-Vector3 Add(const Vector3& v1, const Vector3& v2) {
-	Vector3 result;
-	result.x = v1.x + v2.x; result.y = v1.y + v2.y; result.z = v1.z + v2.z;
-	return result;
-}
-Vector3 Multiply(float scalar, const Vector3& v) {
-	Vector3 result;
-	result.x = scalar * v.x;
-	result.y = scalar * v.y;
-	result.z = scalar * v.z;
-	return result;
-}
-Vector3 Normalize(const Vector3& v) {
-	float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-	return { v.x / length, v.y / length, v.z / length };
-}
-
-Vector3 Project(const Vector3& v1, const Vector3& v2) {
-	Vector3 result;
-	float t = Dot(v1, v2) / (sqrtf(powf(Dot(v2, v2), 2)));
-
-	result = Multiply(t, v2);
-
-	return result;
-}
-Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
-	Vector3 proj = Project(Subtract(point, segment.origin), Subtract(Add(segment.origin, segment.diff), segment.origin));
-	Vector3 cp = Add(segment.origin, proj);
-
-	return cp;
-}
+//AABB(箱)の描画
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -583,7 +591,7 @@ bool isColision(const Segment& segment, const Plane& plane) {
 		return false;
 	}
 }
-//線 & 三角形 当たり判定
+//線 & 三角形
 bool isColision(const Segment& segment, const Triangle& triangle) {
 	Vector3 v01 = Subtract(triangle.vertices[1], triangle.vertices[0]);
 	Vector3 v12 = Subtract(triangle.vertices[2], triangle.vertices[1]);
@@ -627,6 +635,19 @@ bool isColision(const Segment& segment, const Triangle& triangle) {
 		return false;
 	}
 }
+//箱 & 箱
+bool isColision(const AABB& aabb1, const AABB& aabb2) {
+	
+	// 衝突判定
+	if ((aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) && //X軸
+		(aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) && //Y軸
+		(aabb1.min.z <= aabb2.max.z && aabb1.max.z >= aabb2.min.z)) { //Z軸
+		return true;
+	}
+	else {
+		return false;
+	}
+};
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -634,13 +655,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	//三角形
-	Triangle triangle;
-	triangle.vertices[0] = { -0.5f,0.0f,0.0f };
-	triangle.vertices[1] = { 0.0f,0.5f,0.0f };
-	triangle.vertices[2] = { 0.5f,0.0f,0.0f };
+	//AABB
+	AABB aabb1{
+		.min{-0.5f,-0.5f,-0.5f },
+		.max{0.0f,0.0f,0.0f},
+	};
+	AABB aabb2{
+		.min{0.2f,0.2f,0.2f },
+		.max{1.0f,1.0f,1.0f},
+	};
 
-	Segment segment{ { 0.0f,0.0f,1.0f},{0.0f,0.0f,-2.0f} };
 	uint32_t color = WHITE;
 
 	//カメラ
@@ -665,7 +689,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		if (isColision(segment, triangle))
+		if (isColision(aabb1, aabb2))
 		{
 			color = RED;
 		}
@@ -688,10 +712,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, (float)kWindowWidth / (float)kWindowHeight, 0.1f, 100.0f);
 		Matrix4x4 viewProjectionMatrix = Multiply(viewMatriix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, (float)kWindowWidth, (float)kWindowHeight, 0.0f, 1.0f);
-
-		//線の始点・終点
-		Vector3 startPos = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-		Vector3 endPos = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
 		//ImGui
 		ImGui::Begin("window");
@@ -898,4 +918,9 @@ void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatri
 
 	//三角形の描画
 	Novice::DrawTriangle((int)screen[0].x, (int)screen[0].y, (int)screen[1].x, (int)screen[1].y, (int)screen[2].x, (int)screen[2].y, color, kFillModeWireFrame);
+}
+
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+
 }
