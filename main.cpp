@@ -922,5 +922,39 @@ void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatri
 
 void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
 {
+	//頂点
+	Vector3 corners[8] = {
+	   {aabb.min.x, aabb.min.y, aabb.min.z},//左下前
+	   {aabb.max.x, aabb.min.y, aabb.min.z},//右下前
+	   {aabb.min.x, aabb.max.y, aabb.min.z},//左上前
+	   {aabb.max.x, aabb.max.y, aabb.min.z},//右上前
+	   {aabb.min.x, aabb.min.y, aabb.max.z},//左下奥
+	   {aabb.max.x, aabb.min.y, aabb.max.z},//右下奥
+	   {aabb.min.x, aabb.max.y, aabb.max.z},//左上奥
+	   {aabb.max.x, aabb.max.y, aabb.max.z}	//右上奥
+	};
+
+	Vector3 p[8];//変換後の頂点
+	for (int i = 0; i < 8; ++i) {
+		Vector3 transform = Transform(corners[i], viewProjectionMatrix);
+		Vector3 screen = Transform(transform, viewportMatrix);
+		p[i] = screen;
+	}
+
+	//辺の描画
+	Novice::DrawLine((int)p[0].x, (int)p[0].y, (int)p[1].x, (int)p[1].y, color);//下前
+	Novice::DrawLine((int)p[2].x, (int)p[2].y, (int)p[3].x, (int)p[3].y, color);//上前
+	Novice::DrawLine((int)p[0].x, (int)p[0].y, (int)p[2].x, (int)p[2].y, color);//左前
+	Novice::DrawLine((int)p[1].x, (int)p[1].y, (int)p[3].x, (int)p[3].y, color);//右前
+
+	Novice::DrawLine((int)p[4].x, (int)p[4].y, (int)p[5].x, (int)p[5].y, color);//下奥
+	Novice::DrawLine((int)p[6].x, (int)p[6].y, (int)p[7].x, (int)p[7].y, color);//上奥
+	Novice::DrawLine((int)p[4].x, (int)p[4].y, (int)p[6].x, (int)p[6].y, color);//左奥
+	Novice::DrawLine((int)p[5].x, (int)p[5].y, (int)p[7].x, (int)p[7].y, color);//右奥
+
+	Novice::DrawLine((int)p[4].x, (int)p[4].y, (int)p[5].x, (int)p[5].y, color);//左下
+	Novice::DrawLine((int)p[6].x, (int)p[6].y, (int)p[7].x, (int)p[7].y, color);//右下
+	Novice::DrawLine((int)p[4].x, (int)p[4].y, (int)p[6].x, (int)p[6].y, color);//左上
+	Novice::DrawLine((int)p[5].x, (int)p[5].y, (int)p[7].x, (int)p[7].y, color);//右上
 
 }
