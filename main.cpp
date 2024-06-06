@@ -689,6 +689,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		aabb1.min.x = (std::min)(aabb1.min.x, aabb1.min.x);
+		aabb1.min.y = (std::min)(aabb1.min.y, aabb1.min.y);
+		aabb1.min.z = (std::min)(aabb1.min.z, aabb1.min.z);
+
+		aabb2.min.x = (std::min)(aabb2.min.x, aabb2.min.x);
+		aabb2.min.y = (std::min)(aabb2.min.y, aabb2.min.y);
+		aabb2.min.z = (std::min)(aabb2.min.z, aabb2.min.z);
+
 		if (isColision(aabb1, aabb2))
 		{
 			color = RED;
@@ -716,11 +724,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//ImGui
 		ImGui::Begin("window");
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		ImGui::DragFloat3("Triangle.v0", &triangle.vertices[0].x, 0.01f);
-		ImGui::DragFloat3("Triangle.v1", &triangle.vertices[1].x, 0.01f);
-		ImGui::DragFloat3("Triangle.v2", &triangle.vertices[2].x, 0.01f);
-		ImGui::DragFloat3("Segment.Origin", &segment.origin.x, 0.01f);
-		ImGui::DragFloat3("Segment.Diff", &segment.diff.x, 0.01f);
+		ImGui::DragFloat3("aabb1.min", &aabb1.min.x, 0.01f);
+		ImGui::DragFloat3("aabb1.max", &aabb1.max.x, 0.01f);
+		ImGui::DragFloat3("aabb2.min", &aabb2.min.x, 0.01f);
+		ImGui::DragFloat3("aabb2.max", &aabb2.max.x, 0.01f);
 		ImGui::End();
 
 		///
@@ -733,8 +740,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		Novice::DrawLine((int)startPos.x, (int)startPos.y, (int)endPos.x, (int)endPos.y, color);
-		DrawTriangle(triangle, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawAABB(aabb1, viewProjectionMatrix, viewportMatrix, color);
+		DrawAABB(aabb2, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		///
 		/// ↑描画処理ここまで
@@ -952,9 +959,9 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 	Novice::DrawLine((int)p[4].x, (int)p[4].y, (int)p[6].x, (int)p[6].y, color);//左奥
 	Novice::DrawLine((int)p[5].x, (int)p[5].y, (int)p[7].x, (int)p[7].y, color);//右奥
 
-	Novice::DrawLine((int)p[4].x, (int)p[4].y, (int)p[5].x, (int)p[5].y, color);//左下
-	Novice::DrawLine((int)p[6].x, (int)p[6].y, (int)p[7].x, (int)p[7].y, color);//右下
-	Novice::DrawLine((int)p[4].x, (int)p[4].y, (int)p[6].x, (int)p[6].y, color);//左上
-	Novice::DrawLine((int)p[5].x, (int)p[5].y, (int)p[7].x, (int)p[7].y, color);//右上
+	Novice::DrawLine((int)p[0].x, (int)p[0].y, (int)p[4].x, (int)p[4].y, color);//左下
+	Novice::DrawLine((int)p[1].x, (int)p[1].y, (int)p[5].x, (int)p[5].y, color);//右下
+	Novice::DrawLine((int)p[2].x, (int)p[2].y, (int)p[6].x, (int)p[6].y, color);//左上
+	Novice::DrawLine((int)p[3].x, (int)p[3].y, (int)p[7].x, (int)p[7].y, color);//右上
 
 }
