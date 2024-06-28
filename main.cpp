@@ -568,6 +568,19 @@ void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatri
 //AABB(箱)の描画
 void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
+//ベジエ曲線の描画
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
+	Vector3 result;
+
+	result.x = t * v1.x + (1.0f - t) * v2.x;
+	result.y = t * v1.y + (1.0f - t) * v2.y;
+	result.z = t * v1.z + (1.0f - t) * v2.z;
+
+	return result;
+}
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2,
+	const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
 ///////////////////////////////////////////////////////////////////////
 
 //当たり判定
@@ -1061,4 +1074,24 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 	Novice::DrawLine((int)p[2].x, (int)p[2].y, (int)p[6].x, (int)p[6].y, color);//左上
 	Novice::DrawLine((int)p[3].x, (int)p[3].y, (int)p[7].x, (int)p[7].y, color);//右上
 
+}
+
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+	Vector3 p0p1, p1p2, p;
+	int a = 32;//分割数
+
+	for (int i = 0; i < a; ++i) {
+		float t = i / float(a);
+
+		p0p1 = Lerp(controlPoint0, controlPoint1, t);
+		p1p2 = Lerp(controlPoint1, controlPoint2, t);
+
+		p = Lerp(p0p1, p1p2, t);
+
+		Vector3 transform = Transform(p, viewProjectionMatrix);
+		Vector3 screen = Transform(transform, viewportMatrix);
+
+		Novice::DrawLine((int)screenB0.x, (int)screenB0.y, (int)screenB1.x, (int)screenB1.y, BLUE);
+	}
 }
