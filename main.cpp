@@ -1079,7 +1079,7 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
 {
 	Vector3 p0p1, p1p2, p;
-	int a = 32;//分割数
+	int a = 32;//分割数 
 
 	for (int i = 0; i < a; ++i) {
 		float t = i / float(a);
