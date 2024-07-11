@@ -450,6 +450,18 @@ Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix)
 	result.z /= w;
 	return result;
 }
+Vector3 GetWorldPosition(Matrix4x4& worldMatrix)
+{
+	//ワールド座標を入れる変数
+	Vector3 worldPos;
+
+	//ワールド座標の平行移動成分を取得(ワールド座標)
+	worldPos.x = worldMatrix.m[3][0];
+	worldPos.y = worldMatrix.m[3][1];
+	worldPos.z = worldMatrix.m[3][2];
+
+	return worldPos;
+}
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -668,7 +680,7 @@ bool isColision(const Segment& segment, const Triangle& triangle) {
 }
 //箱 & 箱
 bool isColision(const AABB& aabb1, const AABB& aabb2) {
-	
+
 	// 衝突判定
 	if ((aabb1.min.x <= aabb2.max.x && aabb1.max.x >= aabb2.min.x) && //X軸
 		(aabb1.min.y <= aabb2.max.y && aabb1.max.y >= aabb2.min.y) && //Y軸
@@ -680,7 +692,7 @@ bool isColision(const AABB& aabb1, const AABB& aabb2) {
 	}
 };
 //箱 & 球
-bool isColision(const AABB& aabb, const Sphere& sphere){
+bool isColision(const AABB& aabb, const Sphere& sphere) {
 	//最接点を求める
 	Vector3 closestPoint{
 	 std::clamp(sphere.center.x,aabb.min.x,aabb.max.x),
@@ -691,10 +703,10 @@ bool isColision(const AABB& aabb, const Sphere& sphere){
 	float distance = Length(closestPoint, sphere.center);
 
 	//距離が半径よりも小さければ衝突
-	if (distance < sphere.radius)	{
+	if (distance < sphere.radius) {
 		return true;
 	}
-	else{
+	else {
 		return false;
 	}
 }
@@ -775,18 +787,37 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Vector3 controlPoints[3] =
+	Vector3 translates[3] =
 	{
-		{-0.8f,0.58f,1.0f},
-		{1.76f,1.0f,-0.3f},
-		{0.94f,-0.7f,2.3f},
+		{0.2f,1.0f,0.0f},
+		{0.4f,0.0f,0.0f},
+		{0.3f,0.0f,0.0f},
+	};
+	Vector3 rotates[3] =
+	{
+		{0.0f,0.0f,-6.8f},
+		{0.0f,0.0f,-1.4f},
+		{0.0f,0.0f,0.0f},
+	};
+	Vector3 scales[3] =
+	{
+		{1.0f,1.0f,1.0f},
+		{1.0f,1.0f,1.0f},
+		{1.0f,1.0f,1.0f},
 	};
 
 	Sphere sphere[3] =
 	{
-		{{0,0,0},0.01f},
-		{{0,0,0},0.01f},
-		{{0,0,0},0.01f},
+		{{0,0,0},0.05f},
+		{{0,0,0},0.05f},
+		{{0,0,0},0.05f},
+	};
+
+	uint32_t colors[3] =
+	{
+		RED,
+		GREEN,
+		BLUE,
 	};
 
 	//カメラ
@@ -811,10 +842,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		for (int i = 0; i < 3; ++i)
-		{
-			sphere[i].center = controlPoints[i];
-		}
+
 
 		if (keys[DIK_W]) { cameraTranslate.z += cameraSpeed; }
 		if (keys[DIK_S]) { cameraTranslate.z -= cameraSpeed; }
@@ -831,12 +859,51 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 viewProjectionMatrix = Multiply(viewMatriix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, (float)kWindowWidth, (float)kWindowHeight, 0.0f, 1.0f);
 
+
+		Matrix4x4 worldMatrix[3];
+		Matrix4x4 localMatrix[3];
+		Vector3 linePos[3];
+
+		for (int i = 0; i < 3; ++i)
+		{
+			localMatrix[i] = MakeAffineMatrix(scales[i], rotates[i], translates[i]);
+		}
+
+		worldMatrix[0] = localMatrix[0];
+		worldMatrix[1] = Multiply(localMatrix[1], localMatrix[0]);
+		worldMatrix[2] = Multiply(Multiply(localMatrix[2], localMatrix[1]), localMatrix[0]);
+
+		for (int i = 0; i < 3; ++i)
+		{
+			sphere[i].center = GetWorldPosition(worldMatrix[i]);
+			linePos[i] = Transform(Transform(sphere[i].center, viewProjectionMatrix), viewportMatrix);
+		}
+
+
 		//ImGui
 		ImGui::Begin("window");
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		ImGui::DragFloat3("controlPoints[0]", &controlPoints[0].x, 0.01f);
-		ImGui::DragFloat3("controlPoints[1]", &controlPoints[1].x, 0.01f);
-		ImGui::DragFloat3("controlPoints[2]", &controlPoints[2].x, 0.01f);
+		//1
+		if (ImGui::TreeNode("RED")) {
+			ImGui::DragFloat3("translates[0]", &translates[0].x, 0.01f);
+			ImGui::DragFloat3("rotates[0]", &rotates[0].x, 0.01f);
+			ImGui::DragFloat3("scales[0]", &scales[0].x, 0.01f);
+			ImGui::TreePop();
+		}
+		//2
+		if (ImGui::TreeNode("GREEN")) {
+			ImGui::DragFloat3("translates[1]", &translates[1].x, 0.01f);
+			ImGui::DragFloat3("rotates[1]", &rotates[1].x, 0.01f);
+			ImGui::DragFloat3("scales[1]", &scales[1].x, 0.01f);
+			ImGui::TreePop();
+		}
+		//3
+		if (ImGui::TreeNode("BLUE")) {
+			ImGui::DragFloat3("translates[2]", &translates[2].x, 0.01f);
+			ImGui::DragFloat3("rotates[2]", &rotates[2].x, 0.01f);
+			ImGui::DragFloat3("scales[2]", &scales[2].x, 0.01f);
+			ImGui::TreePop();
+		}
 		ImGui::End();
 
 		///
@@ -849,10 +916,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], viewProjectionMatrix, viewportMatrix, BLUE);
-		for (int i = 0; i < 3; ++i)
-		{
-			DrawSphere(sphere[i], viewProjectionMatrix, viewportMatrix, BLACK);
+		for (int i = 0; i < 3; ++i) {
+			DrawSphere(sphere[i], viewProjectionMatrix, viewportMatrix, colors[i]);
+		}
+		for (int i = 0; i < 2; ++i) {
+			Novice::DrawLine((int)linePos[i].x, (int)linePos[i].y, (int)linePos[i + 1].x, (int)linePos[i + 1].y, WHITE);
 		}
 		///
 		/// ↑描画処理ここまで
