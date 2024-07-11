@@ -572,11 +572,17 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
 	Vector3 result;
 
-	result.x = t * v1.x + (1.0f - t) * v2.x;
-	result.y = t * v1.y + (1.0f - t) * v2.y;
-	result.z = t * v1.z + (1.0f - t) * v2.z;
+	result = Add(v1, Multiply(t, Subtract(v2, v1)));
 
 	return result;
+}
+Vector3 Bezier(const Vector3& p0, const Vector3& p1, const Vector3& p2, float t)
+{
+	Vector3 p0p1 = Lerp(p0, p1, t);
+	Vector3 p1p2 = Lerp(p1, p2, t);
+	Vector3 p = Lerp(p0p1, p1p2, t);
+
+	return p;
 }
 void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2,
 	const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
@@ -769,17 +775,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	AABB aabb{
-		.min{-0.5f,-0.5f,-0.5f },
-		.max{0.0f,0.0f,0.0f},
+	Vector3 controlPoints[3] =
+	{
+		{-0.8f,0.58f,1.0f},
+		{1.76f,1.0f,-0.3f},
+		{0.94f,-0.7f,2.3f},
 	};
 
-	Segment segment{
-		.origin{-0.7f,0.3f,0.0f},
-		.diff{2.0f,-0.5f,0.0f}
+	Sphere sphere[3] =
+	{
+		{{0,0,0},0.01f},
+		{{0,0,0},0.01f},
+		{{0,0,0},0.01f},
 	};
-
-	uint32_t color = WHITE;
 
 	//カメラ
 	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
@@ -803,13 +811,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		if (isColision(aabb, segment))
+		for (int i = 0; i < 3; ++i)
 		{
-			color = RED;
-		}
-		else
-		{
-			color = WHITE;
+			sphere[i].center = controlPoints[i];
 		}
 
 		if (keys[DIK_W]) { cameraTranslate.z += cameraSpeed; }
@@ -827,17 +831,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 viewProjectionMatrix = Multiply(viewMatriix, projectionMatrix);
 		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, (float)kWindowWidth, (float)kWindowHeight, 0.0f, 1.0f);
 
-		//直線の始点、終点
-		Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-		Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
-
 		//ImGui
 		ImGui::Begin("window");
 		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		ImGui::DragFloat3("aabb1.min", &aabb.min.x, 0.01f);
-		ImGui::DragFloat3("aabb1.max", &aabb.max.x, 0.01f);
-		ImGui::DragFloat3("Segment.Origin", &segment.origin.x, 0.01f);
-		ImGui::DragFloat3("Segment.Diff", &segment.diff.x, 0.01f);
+		ImGui::DragFloat3("controlPoints[0]", &controlPoints[0].x, 0.01f);
+		ImGui::DragFloat3("controlPoints[1]", &controlPoints[1].x, 0.01f);
+		ImGui::DragFloat3("controlPoints[2]", &controlPoints[2].x, 0.01f);
 		ImGui::End();
 
 		///
@@ -850,9 +849,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		DrawAABB(aabb, viewProjectionMatrix, viewportMatrix, color);
-		Novice::DrawLine((int)start.x, (int)start.y, (int)end.x, (int)end.y, WHITE);
-
+		DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], viewProjectionMatrix, viewportMatrix, BLUE);
+		for (int i = 0; i < 3; ++i)
+		{
+			DrawSphere(sphere[i], viewProjectionMatrix, viewportMatrix, BLACK);
+		}
 		///
 		/// ↑描画処理ここまで
 		///
@@ -1078,20 +1079,22 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 
 void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
 {
-	Vector3 p0p1, p1p2, p;
-	int a = 32;//分割数 
+	float num = 32;//分割数
 
-	for (int i = 0; i < a; ++i) {
-		float t = i / float(a);
+	for (int i = 0; i < num; ++i)
+	{
+		float t0 = i / float(num);
+		float t1 = (i + 1) / float(num);
 
-		p0p1 = Lerp(controlPoint0, controlPoint1, t);
-		p1p2 = Lerp(controlPoint1, controlPoint2, t);
+		Vector3 bezier0 = Bezier(controlPoint0, controlPoint1, controlPoint2, t0);
+		Vector3 bezier1 = Bezier(controlPoint0, controlPoint1, controlPoint2, t1);
 
-		p = Lerp(p0p1, p1p2, t);
+		Vector3 transform0 = Transform(bezier0, viewProjectionMatrix);
+		Vector3 transform1 = Transform(bezier1, viewProjectionMatrix);
 
-		Vector3 transform = Transform(p, viewProjectionMatrix);
-		Vector3 screen = Transform(transform, viewportMatrix);
+		Vector3 screenB0 = Transform(transform0, viewportMatrix);
+		Vector3 screenB1 = Transform(transform1, viewportMatrix);
 
-		Novice::DrawLine((int)screenB0.x, (int)screenB0.y, (int)screenB1.x, (int)screenB1.y, BLUE);
+		Novice::DrawLine((int)screenB0.x, (int)screenB0.y, (int)screenB1.x, (int)screenB1.y, color);
 	}
 }
