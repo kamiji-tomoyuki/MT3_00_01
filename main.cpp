@@ -3,15 +3,12 @@
 #include <Novice.h>
 #include <imgui.h>
 #include "Vector3.h"
+#include "Matrix4x4.h"
 #include "assert.h"
 #include <algorithm>
 
 const char kWindowTitle[] = "LE2B_07_カミジ_トモユキ";
 
-struct Matrix4x4
-{
-	float m[4][4];
-};
 
 struct Sphere {
 	Vector3 center;//中心点
@@ -781,49 +778,39 @@ bool isColision(const AABB& aabb, const Segment segment)
 
 }
 
+///////////////////////////////////////////////////////////////////////
+
+//演算子オーバーロード
+// ヘッダーで宣言済み
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Vector3 translates[3] =
-	{
-		{0.2f,1.0f,0.0f},
-		{0.4f,0.0f,0.0f},
-		{0.3f,0.0f,0.0f},
-	};
-	Vector3 rotates[3] =
-	{
-		{0.0f,0.0f,-6.8f},
-		{0.0f,0.0f,-1.4f},
-		{0.0f,0.0f,0.0f},
-	};
-	Vector3 scales[3] =
-	{
-		{1.0f,1.0f,1.0f},
-		{1.0f,1.0f,1.0f},
-		{1.0f,1.0f,1.0f},
-	};
+	Vector3 a{ 0.2f,1.0f,0.0f };// v1
+	Vector3 b{ 2.4f,3.1f,1.2f };// v2
 
-	Sphere sphere[3] =
-	{
-		{{0,0,0},0.05f},
-		{{0,0,0},0.05f},
-		{{0,0,0},0.05f},
-	};
+	Vector3 c = a + b;// +
+	Vector3 d = a - b;// -
+	Vector3 e = a * 2.4f;// * k
+	Vector3 f = e / 2.0f;// / k
 
-	uint32_t colors[3] =
-	{
-		RED,
-		GREEN,
-		BLUE,
+	Vector3 rotate{ 0.4f,1.43f,-0.8f };
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;// *
+	
+	Matrix4x4 m = {
+		 1.0f,1.0f,1.0f,1.0f,
+		 1.0f,1.0f,1.0f,1.0f,
+		 1.0f,1.0f,1.0f,1.0f,
+		 1.0f,1.0f,1.0f,1.0f
 	};
-
-	//カメラ
-	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
-	Vector3 cameraRotate{ 0.26f,0.0f,0.0f };
-	float cameraSpeed = 0.1f;
+	Matrix4x4 m1 = rotateMatrix + m; // +
+	Matrix4x4 m2 = rotateMatrix - m; // -
 
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
@@ -842,68 +829,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-
-
-		if (keys[DIK_W]) { cameraTranslate.z += cameraSpeed; }
-		if (keys[DIK_S]) { cameraTranslate.z -= cameraSpeed; }
-
-		if (keys[DIK_A]) { cameraTranslate.x -= cameraSpeed; }
-		if (keys[DIK_D]) { cameraTranslate.x += cameraSpeed; }
-
-		if (keys[DIK_UP]) { cameraTranslate.y += cameraSpeed; }
-		if (keys[DIK_DOWN]) { cameraTranslate.y -= cameraSpeed; }
-
-		Matrix4x4 camelaMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, cameraRotate, cameraTranslate);
-		Matrix4x4 viewMatriix = Inverse(camelaMatrix);
-		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, (float)kWindowWidth / (float)kWindowHeight, 0.1f, 100.0f);
-		Matrix4x4 viewProjectionMatrix = Multiply(viewMatriix, projectionMatrix);
-		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, (float)kWindowWidth, (float)kWindowHeight, 0.0f, 1.0f);
-
-
-		Matrix4x4 worldMatrix[3];
-		Matrix4x4 localMatrix[3];
-		Vector3 linePos[3];
-
-		for (int i = 0; i < 3; ++i)
-		{
-			localMatrix[i] = MakeAffineMatrix(scales[i], rotates[i], translates[i]);
-		}
-
-		worldMatrix[0] = localMatrix[0];
-		worldMatrix[1] = Multiply(localMatrix[1], localMatrix[0]);
-		worldMatrix[2] = Multiply(Multiply(localMatrix[2], localMatrix[1]), localMatrix[0]);
-
-		for (int i = 0; i < 3; ++i)
-		{
-			sphere[i].center = GetWorldPosition(worldMatrix[i]);
-			linePos[i] = Transform(Transform(sphere[i].center, viewProjectionMatrix), viewportMatrix);
-		}
-
-
 		//ImGui
 		ImGui::Begin("window");
-		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
-		//1
-		if (ImGui::TreeNode("RED")) {
-			ImGui::DragFloat3("translates[0]", &translates[0].x, 0.01f);
-			ImGui::DragFloat3("rotates[0]", &rotates[0].x, 0.01f);
-			ImGui::DragFloat3("scales[0]", &scales[0].x, 0.01f);
-			ImGui::TreePop();
-		}
-		//2
-		if (ImGui::TreeNode("GREEN")) {
-			ImGui::DragFloat3("translates[1]", &translates[1].x, 0.01f);
-			ImGui::DragFloat3("rotates[1]", &rotates[1].x, 0.01f);
-			ImGui::DragFloat3("scales[1]", &scales[1].x, 0.01f);
-			ImGui::TreePop();
-		}
-		//3
-		if (ImGui::TreeNode("BLUE")) {
-			ImGui::DragFloat3("translates[2]", &translates[2].x, 0.01f);
-			ImGui::DragFloat3("rotates[2]", &rotates[2].x, 0.01f);
-			ImGui::DragFloat3("scales[2]", &scales[2].x, 0.01f);
-			ImGui::TreePop();
-		}
+
+		ImGui::Text("+:%f, %f, %f", c.x, c.y, c.z);
+		ImGui::Text("-:%f, %f, %f", d.x, d.y, d.z);
+		ImGui::Text("*:%f, %f, %f", e.x, e.y, e.z);
+		ImGui::Text("/:%f, %f, %f", f.x, f.y, f.z);
+
+		ImGui::Text("rotate:\n%f,%f,%f,%f\n%f,%f,%f,%f\n%f,%f,%f,%f\n%f,%f,%f,%f\n",
+			rotateMatrix.m[0][0], rotateMatrix.m[0][1], rotateMatrix.m[0][2], rotateMatrix.m[0][3],
+			rotateMatrix.m[1][0], rotateMatrix.m[1][1], rotateMatrix.m[1][2], rotateMatrix.m[1][3],
+			rotateMatrix.m[2][0], rotateMatrix.m[2][1], rotateMatrix.m[2][2], rotateMatrix.m[2][3],
+			rotateMatrix.m[3][0], rotateMatrix.m[3][1], rotateMatrix.m[3][2], rotateMatrix.m[3][3]);
+		ImGui::Text("+:\n%f,%f,%f,%f\n%f,%f,%f,%f\n%f,%f,%f,%f\n%f,%f,%f,%f\n",
+			m1.m[0][0], m1.m[0][1], m1.m[0][2], m1.m[0][3],
+			m1.m[1][0], m1.m[1][1], m1.m[1][2], m1.m[1][3],
+			m1.m[2][0], m1.m[2][1], m1.m[2][2], m1.m[2][3],
+			m1.m[3][0], m1.m[3][1], m1.m[3][2], m1.m[3][3]);
+		ImGui::Text("-:\n%f,%f,%f,%f\n%f,%f,%f,%f\n%f,%f,%f,%f\n%f,%f,%f,%f\n",
+			m2.m[0][0], m2.m[0][1], m2.m[0][2], m2.m[0][3],
+			m2.m[1][0], m2.m[1][1], m2.m[1][2], m2.m[1][3],
+			m2.m[2][0], m2.m[2][1], m2.m[2][2], m2.m[2][3],
+			m2.m[3][0], m2.m[3][1], m2.m[3][2], m2.m[3][3]);
+
 		ImGui::End();
 
 		///
@@ -914,14 +863,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 
-		DrawGrid(viewProjectionMatrix, viewportMatrix);
-
-		for (int i = 0; i < 3; ++i) {
-			DrawSphere(sphere[i], viewProjectionMatrix, viewportMatrix, colors[i]);
-		}
-		for (int i = 0; i < 2; ++i) {
-			Novice::DrawLine((int)linePos[i].x, (int)linePos[i].y, (int)linePos[i + 1].x, (int)linePos[i + 1].y, WHITE);
-		}
 		///
 		/// ↑描画処理ここまで
 		///
