@@ -44,6 +44,24 @@ struct AABB {
 	Vector3 max;//最大店
 };
 
+struct Spring
+{
+	Vector3 anchor;           // 固定位置
+	float naturalLength;      // 自然長
+	float stiffness;          // バネ定数
+	float dampingCoefficient; // 減衰係数
+};
+
+struct Ball
+{
+	Vector3 position;     
+	Vector3 velocity;     
+	Vector3 acceleration; 
+	float mass;// 質量
+	float radius;         
+	unsigned int color;   
+};
+
 ///////////////////////////////////////////////////////////////////////
 
 //平行移動行列
@@ -789,28 +807,37 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Vector3 a{ 0.2f,1.0f,0.0f };// v1
-	Vector3 b{ 2.4f,3.1f,1.2f };// v2
-
-	Vector3 c = a + b;// +
-	Vector3 d = a - b;// -
-	Vector3 e = a * 2.4f;// * k
-	Vector3 f = e / 2.0f;// / k
-
-	Vector3 rotate{ 0.4f,1.43f,-0.8f };
-	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
-	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
-	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
-	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;// *
-	
-	Matrix4x4 m = {
-		 1.0f,1.0f,1.0f,1.0f,
-		 1.0f,1.0f,1.0f,1.0f,
-		 1.0f,1.0f,1.0f,1.0f,
-		 1.0f,1.0f,1.0f,1.0f
+	Spring spring{
+		{0.0f,0.0f,0.0f},
+		1.0f,
+		100.0f,
+		2.0f
 	};
-	Matrix4x4 m1 = rotateMatrix + m; // +
-	Matrix4x4 m2 = rotateMatrix - m; // -
+
+	Ball ball{
+		{1.2f,0.0f,0.0f},
+		{0,0,0},
+		{0,0,0},
+		2.0f,
+		0.05f,
+		BLUE
+	};
+
+	Sphere sphere{
+		{0,0,0},
+		0.0f
+	};
+
+	Vector3 linePoint[2] = { {0,0,0},{0,0,0} };
+
+	float deltaTime = 1.0f / 60.0f;
+	bool isStart = false;
+
+	// カメラ
+	Vector3 cameraTranslate{ 0.0f,1.9f,-6.49f };
+	Vector3 cameraRotate{ 0.26f,0.0f,0.0f };
+
+	float cameraSpeed = 0.01f;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
