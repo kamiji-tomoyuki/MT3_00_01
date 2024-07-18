@@ -811,26 +811,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Spring spring{
-		{0.0f,0.0f,0.0f},
-		1.0f,
-		100.0f,
-		2.0f
-	};
+	Spring spring{};
+	spring.anchor = { 0.0f,0.0f,0.0f };
+	spring.naturalLength = 1.0f;
+	spring.stiffness = 100.0f;
+	spring.dampingCoefficient = 2.0f;
 
-	Ball ball{
-		{1.2f,0.0f,0.0f},
-		{0,0,0},
-		{0,0,0},
-		2.0f,
-		0.05f,
-		BLUE
-	};
+	Ball ball{};
+	ball.position = { 1.2f,0.0f,0.0f };
+	ball.mass = 2.0f;
+	ball.radius = 0.05f;
+	ball.color = BLUE;
 
-	Sphere sphere{
-		{0,0,0},
-		0.0f
-	};
+	Sphere sphere{};
 
 	Vector3 linePoint[2] = { {0,0,0},{0,0,0} };
 
@@ -860,15 +853,57 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓カメラ
 		///
 
+		if (keys[DIK_W]) { cameraTranslate.z += cameraSpeed; }
+		if (keys[DIK_S]) { cameraTranslate.z -= cameraSpeed; }
 
+		if (keys[DIK_A]) { cameraTranslate.x -= cameraSpeed; }
+		if (keys[DIK_D]) { cameraTranslate.x += cameraSpeed; }
+
+		if (keys[DIK_UP]) { cameraTranslate.y += cameraSpeed; }
+		if (keys[DIK_DOWN]) { cameraTranslate.y -= cameraSpeed; }
+
+		Matrix4x4 camelaMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, cameraRotate, cameraTranslate);
+		Matrix4x4 viewMatriix = Inverse(camelaMatrix);
+		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, (float)kWindowWidth / (float)kWindowHeight, 0.1f, 100.0f);
+		Matrix4x4 viewProjectionMatrix = Multiply(viewMatriix, projectionMatrix);
+		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, (float)kWindowWidth, (float)kWindowHeight, 0.0f, 1.0f);
 
 		///
 		/// ↓更新処理ここから
 		///
 
+		sphere.center = ball.position;
+		sphere.radius = ball.radius;
+
+		Vector3 diff = ball.position - spring.anchor;
+		float length = Length(diff);
+		if (length != 0.0f && isStart)
+		{
+			Vector3 direction = Normalize(diff);
+			Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
+			Vector3 displacement = (ball.position - restPosition) * length;
+			Vector3 restoringForce = displacement * (-spring.stiffness);
+			
+			// 減衰抵抗を計算
+			Vector3 dampingForce = ball.velocity * (-spring.dampingCoefficient);
+			
+			// 減衰抵抗も加味して、物体にかかる力を決定する
+			Vector3 force = restoringForce + dampingForce;
+			ball.acceleration = force / ball.mass;
+		}
+
+		ball.velocity += ball.acceleration * deltaTime;
+		ball.position += ball.velocity * deltaTime;
+
+		linePoint[0] = Transform(Transform({ 0,0,0 }, viewProjectionMatrix), viewportMatrix);
+		linePoint[1] = Transform(Transform(sphere.center, viewProjectionMatrix), viewportMatrix);
+
 		//ImGui
 		ImGui::Begin("window");
-
+		ImGui::DragFloat3("CameraRotate", &cameraRotate.x, 0.01f);
+		if (ImGui::Button("start")) {
+			isStart = true;
+		}
 		ImGui::End();
 
 		///
@@ -879,6 +914,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		///
 
+		DrawGrid(viewProjectionMatrix, viewportMatrix);
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
+		Novice::DrawLine((int)linePoint[0].x, (int)linePoint[0].y, (int)linePoint[1].x, (int)linePoint[1].y, WHITE);
+
+		Novice::ScreenPrintf(0, 0, "%f", );
 		///
 		/// ↑描画処理ここまで
 		///
