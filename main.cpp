@@ -62,6 +62,15 @@ struct Ball
 	unsigned int color;   
 };
 
+struct Pendulum
+{
+	Vector3 anchor;            // 固定位置
+	float length;              // 紐の長さ
+	float angle;               
+	float angularVelocity;     // 各速度μ
+	float angularAcceleration; // 角加速度
+};
+
 ///////////////////////////////////////////////////////////////////////
 
 //平行移動行列
@@ -822,17 +831,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Sphere sphere
-	{
+	Pendulum pendulum {
+		{0,1.0f,0},
+		0.8f,
+		0.7f,
+		0,
+		0
+	};
+
+	Sphere sphere {
 		{0,0,0},
 		0.03f
 	};
 
-	Vector3 center = { 0.0f,0,0 };
-	float radius = 1.0f;
-
-	float angularVelocity = 3.14f;
-	float angle = 0.0f;
+	Vector3 linePoint[2] = { {0,0,0},{0,0,0} };
 
 	float deltaTime = 1.0f / 60.0f;
 	bool isStart = false;
@@ -879,13 +891,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		pendulum.angularVelocity += pendulum.angularAcceleration * deltaTime;
+		pendulum.angle += pendulum.angularVelocity * deltaTime;
+
+		sphere.center.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
+		sphere.center.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
+		sphere.center.z = pendulum.anchor.z;
+
 		if (isStart) {
-			angle += angularVelocity * deltaTime;
+			pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
 		}
 
-		sphere.center.x = center.x + std::cos(angle) * radius;
-		sphere.center.y = center.y + std::sin(angle) * radius;
-		sphere.center.z = center.z;
+
+		//紐
+		linePoint[0] = Transform(Transform({ 0,1.2f,0 }, viewProjectionMatrix), viewportMatrix);
+		linePoint[1] = Transform(Transform(sphere.center, viewProjectionMatrix), viewportMatrix);
 
 
 		//ImGui
@@ -905,9 +925,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
-		
+
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, RED);
+		Novice::DrawLine((int)linePoint[0].x, (int)linePoint[0].y, (int)linePoint[1].x, (int)linePoint[1].y, WHITE);
+
 		///
 		/// ↑描画処理ここまで
 		///
