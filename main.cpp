@@ -2,8 +2,8 @@
 #define _USE_MATH_DEFINES
 #include <Novice.h>
 #include <imgui.h>
-#include "Vector3.h"
-#include "Matrix4x4.h"
+#include "Vector/Vector3.h"
+#include "Vector/Matrix4x4.h"
 #include "assert.h"
 #include <algorithm>
 
@@ -804,6 +804,17 @@ bool isColision(const AABB& aabb, const Segment segment)
 
 //演算子オーバーロード
 // ヘッダーで宣言済み
+Vector3 operator+(const Vector3& v1, const Vector3& v2) { return Add(v1, v2); }
+Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Subtract(v1, v2); }
+Vector3 operator*(float s, const Vector3& v) { return Multiply(s, v); }
+Vector3 operator*(const Vector3& v, float s) { return s * v; }
+Vector3 operator/(const Vector3& v, float s) { return Multiply(1.0f / s, v); }
+Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2) { return Add(m1, m2); }
+Matrix4x4 operator-(const Matrix4x4& m1, const Matrix4x4& m2) { return Subtract(m1, m2); }
+Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
+Vector3 operator-(const Vector3& v) { return { -v.x,-v.y,-v.z }; }
+Vector3 operator+(const Vector3& v) { return v; }
+
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -892,8 +903,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ball.acceleration = force / ball.mass;
 		}
 
-		ball.velocity += ball.acceleration * deltaTime;
-		ball.position += ball.velocity * deltaTime;
+		ball.velocity = ball.velocity + ball.acceleration * deltaTime;
+		ball.position = ball.position + ball.velocity * deltaTime;
 
 		linePoint[0] = Transform(Transform({ 0,0,0 }, viewProjectionMatrix), viewportMatrix);
 		linePoint[1] = Transform(Transform(sphere.center, viewProjectionMatrix), viewportMatrix);
@@ -917,8 +928,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
 		Novice::DrawLine((int)linePoint[0].x, (int)linePoint[0].y, (int)linePoint[1].x, (int)linePoint[1].y, WHITE);
-
-		Novice::ScreenPrintf(0, 0, "%f", );
 		///
 		/// ↑描画処理ここまで
 		///
