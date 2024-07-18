@@ -857,6 +857,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Novice::GetHitKeyStateAll(keys);
 
 		///
+		/// ↓カメラ
+		///
+
+
+
+		///
 		/// ↓更新処理ここから
 		///
 
