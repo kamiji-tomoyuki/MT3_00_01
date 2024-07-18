@@ -822,21 +822,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Spring spring{};
-	spring.anchor = { 0.0f,0.0f,0.0f };
-	spring.naturalLength = 1.0f;
-	spring.stiffness = 100.0f;
-	spring.dampingCoefficient = 2.0f;
+	Sphere sphere
+	{
+		{0,0,0},
+		0.03f
+	};
 
-	Ball ball{};
-	ball.position = { 1.2f,0.0f,0.0f };
-	ball.mass = 2.0f;
-	ball.radius = 0.05f;
-	ball.color = BLUE;
+	Vector3 center = { 0.0f,0,0 };
+	float radius = 1.0f;
 
-	Sphere sphere{};
-
-	Vector3 linePoint[2] = { {0,0,0},{0,0,0} };
+	float angularVelocity = 3.14f;
+	float angle = 0.0f;
 
 	float deltaTime = 1.0f / 60.0f;
 	bool isStart = false;
@@ -883,31 +879,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		sphere.center = ball.position;
-		sphere.radius = ball.radius;
-
-		Vector3 diff = ball.position - spring.anchor;
-		float length = Length(diff);
-		if (length != 0.0f && isStart)
-		{
-			Vector3 direction = Normalize(diff);
-			Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
-			Vector3 displacement = (ball.position - restPosition) * length;
-			Vector3 restoringForce = displacement * (-spring.stiffness);
-			
-			// 減衰抵抗を計算
-			Vector3 dampingForce = ball.velocity * (-spring.dampingCoefficient);
-			
-			// 減衰抵抗も加味して、物体にかかる力を決定する
-			Vector3 force = restoringForce + dampingForce;
-			ball.acceleration = force / ball.mass;
+		if (isStart) {
+			angle += angularVelocity * deltaTime;
 		}
 
-		ball.velocity = ball.velocity + ball.acceleration * deltaTime;
-		ball.position = ball.position + ball.velocity * deltaTime;
+		sphere.center.x = center.x + std::cos(angle) * radius;
+		sphere.center.y = center.y + std::sin(angle) * radius;
+		sphere.center.z = center.z;
 
-		linePoint[0] = Transform(Transform({ 0,0,0 }, viewProjectionMatrix), viewportMatrix);
-		linePoint[1] = Transform(Transform(sphere.center, viewProjectionMatrix), viewportMatrix);
 
 		//ImGui
 		ImGui::Begin("window");
@@ -926,8 +905,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, ball.color);
-		Novice::DrawLine((int)linePoint[0].x, (int)linePoint[0].y, (int)linePoint[1].x, (int)linePoint[1].y, WHITE);
+		
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, WHITE);
+		
 		///
 		/// ↑描画処理ここまで
 		///
