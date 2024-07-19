@@ -9,6 +9,7 @@
 
 const char kWindowTitle[] = "LE2B_07_カミジ_トモユキ";
 
+#pragma region 関数諸々
 
 struct Sphere {
 	Vector3 center;//中心点
@@ -54,19 +55,19 @@ struct Spring
 
 struct Ball
 {
-	Vector3 position;     
-	Vector3 velocity;     
-	Vector3 acceleration; 
+	Vector3 position;
+	Vector3 velocity;
+	Vector3 acceleration;
 	float mass;// 質量
-	float radius;         
-	unsigned int color;   
+	float radius;
+	unsigned int color;
 };
 
 struct Pendulum
 {
 	Vector3 anchor;            // 固定位置
 	float length;              // 紐の長さ
-	float angle;               
+	float angle;
 	float angularVelocity;     // 角速度
 	float angularAcceleration; // 角加速度
 };
@@ -546,7 +547,7 @@ float Length(const Vector3& v1, const Vector3& v2) {
 
 	return d;
 }
-float Length(const Vector3& v){
+float Length(const Vector3& v) {
 	float result;
 	result = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 	return result;
@@ -578,6 +579,21 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label)
 	Novice::ScreenPrintf(x + kColumnWidth * 2, y, "%.02f", vector.z);
 	Novice::ScreenPrintf(x + kColumnWidth * 3, y, "%s", label);
 }
+
+///////////////////////////////////////////////////////////////////////
+
+//演算子オーバーロード
+// ヘッダーで宣言済み
+Vector3 operator+(const Vector3& v1, const Vector3& v2) { return Add(v1, v2); }
+Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Subtract(v1, v2); }
+Vector3 operator*(float s, const Vector3& v) { return Multiply(s, v); }
+Vector3 operator*(const Vector3& v, float s) { return s * v; }
+Vector3 operator/(const Vector3& v, float s) { return Multiply(1.0f / s, v); }
+Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2) { return Add(m1, m2); }
+Matrix4x4 operator-(const Matrix4x4& m1, const Matrix4x4& m2) { return Subtract(m1, m2); }
+Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
+Vector3 operator-(const Vector3& v) { return { -v.x,-v.y,-v.z }; }
+Vector3 operator+(const Vector3& v) { return v; }
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -747,8 +763,7 @@ bool isColision(const AABB& aabb, const Sphere& sphere) {
 		return false;
 	}
 }
-//箱 & 線
-//AABB・線
+//AABB & 線
 bool isColision(const AABB& aabb, const Segment segment)
 {
 	Vector3 nX = { 1,0,0 };
@@ -817,22 +832,14 @@ bool isColision(const AABB& aabb, const Segment segment)
 	}
 
 }
+//面 & 球 反射
+Vector3 Reflect(const Vector3& input, const Vector3& normal) {
+	float dotProduct = Dot(input, normal);
+	return input - normal * (2.0f * dotProduct);
+}
 
 ///////////////////////////////////////////////////////////////////////
-
-//演算子オーバーロード
-// ヘッダーで宣言済み
-Vector3 operator+(const Vector3& v1, const Vector3& v2) { return Add(v1, v2); }
-Vector3 operator-(const Vector3& v1, const Vector3& v2) { return Subtract(v1, v2); }
-Vector3 operator*(float s, const Vector3& v) { return Multiply(s, v); }
-Vector3 operator*(const Vector3& v, float s) { return s * v; }
-Vector3 operator/(const Vector3& v, float s) { return Multiply(1.0f / s, v); }
-Matrix4x4 operator+(const Matrix4x4& m1, const Matrix4x4& m2) { return Add(m1, m2); }
-Matrix4x4 operator-(const Matrix4x4& m1, const Matrix4x4& m2) { return Subtract(m1, m2); }
-Matrix4x4 operator*(const Matrix4x4& m1, const Matrix4x4& m2) { return Multiply(m1, m2); }
-Vector3 operator-(const Vector3& v) { return { -v.x,-v.y,-v.z }; }
-Vector3 operator+(const Vector3& v) { return v; }
-
+#pragma endregion 関数諸々
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -840,19 +847,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	ConicalPendulum conicalPendulum;
-	conicalPendulum.anchor = { 0.0f,1.0f,0.0f };
-	conicalPendulum.length = 0.8f;
-	conicalPendulum.halfApexAngle = 0.7f;
-	conicalPendulum.angle = 0.0f;
-	conicalPendulum.angularVelocity = 0.0f;
+	Plane plane;
+	plane.normal = Normalize({ -0.2f,0.9f,-0.3f });
+	plane.distance = 0.0f;
 
-	Sphere sphere {
-		{ 0.0f,0.0f,0.0f },
-		0.03f
-	};
+	Ball ball{};
+	ball.position = { 0.8f,1.2f,0.3f };
+	ball.mass = 2.0f;
+	ball.radius = 0.05f;
+	ball.color = WHITE;
 
-	Vector3 linePoint[2] = { {0,0,0},{0,0,0} };
+	float e = 0.8f;
 
 	float deltaTime = 1.0f / 60.0f;
 	bool isStart = false;
@@ -899,23 +904,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		conicalPendulum.angularVelocity = std::sqrt(9.8f/(conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle)));
-		conicalPendulum.angle += conicalPendulum.angularVelocity * deltaTime;
+		ball.velocity = ball.velocity + ball.acceleration * deltaTime;
+		ball.position = ball.position + ball.velocity * deltaTime;
 
-		float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-		float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
-		
-		if (isStart) {
-			sphere.center.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
-			sphere.center.y = conicalPendulum.anchor.y - height;
-			sphere.center.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
+		if (isColision(Sphere{ ball.position,ball.radius }, plane)) {
+			Vector3 reflected = Reflect(ball.velocity, plane.normal);
+			Vector3 projectToNormal = Project(reflected, plane.normal);
+			Vector3 movingDirection = reflected - projectToNormal;
+			ball.velocity = projectToNormal * e + movingDirection;
 		}
 
 
-		//紐
-		linePoint[0] = Transform(Transform({ 0,1.2f,0 }, viewProjectionMatrix), viewportMatrix);
-		linePoint[1] = Transform(Transform(sphere.center, viewProjectionMatrix), viewportMatrix);
-
+		if (isStart) {
+			ball.acceleration = { 0.0f,-9.8f,0.0f };
+			
+		}
 
 		//ImGui
 		ImGui::Begin("window");
@@ -935,8 +938,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, RED);
-		Novice::DrawLine((int)linePoint[0].x, (int)linePoint[0].y, (int)linePoint[1].x, (int)linePoint[1].y, WHITE);
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, WHITE);
+		DrawSphere(Sphere{ ball.position,ball.radius }, viewProjectionMatrix, viewportMatrix, WHITE);
 
 		///
 		/// ↑描画処理ここまで
